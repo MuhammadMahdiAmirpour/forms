@@ -4,7 +4,7 @@ go 1.23.5
 
 require (
 	github.com/jalaali/go-jalaali v0.0.0-20210801064154-80525e88d958
-	github.com/rs/cors v1.11.1
+	github.com/yaa110/go-persian-calendar v1.2.1
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )

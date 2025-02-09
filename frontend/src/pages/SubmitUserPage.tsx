@@ -1,7 +1,8 @@
 import React, { useState } from "react";
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
 import { submitUser } from "../api";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { User, Address } from "../types";
 
 function SubmitUserPage() {
@@ -9,11 +10,11 @@ function SubmitUserPage() {
     firstname: "",
     lastname: "",
     gender: "",
-    persian_date: "", // Store the Persian date as a string
+    persian_date: "", // Will be stored as a string of digits, e.g. "14000101"
     addresses: [{ subject: "", details: "" }],
   });
-
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  
+  const [selectedDate, setSelectedDate] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,12 +26,11 @@ function SubmitUserPage() {
     }
   };
 
-  const handleDateChange = (date: Date) => {
+  const handleDateChange = (date: any) => {
     setSelectedDate(date);
-
-    // Format the Gregorian date as a Persian date
-    const persianDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
-    setFormData({ ...formData, persian_date: persianDate });
+    // Format the date as YYYYMMDD (e.g. "14000101") which converts to integer on backend
+    const persianDateStr = date ? date.format("YYYYMMDD") : "";
+    setFormData({ ...formData, persian_date: persianDateStr });
   };
 
   const handleAddressChange = (index: number, field: keyof Address, value: string) => {
@@ -79,12 +79,12 @@ function SubmitUserPage() {
         <label>
           Persian Date:
           <DatePicker
-            selected={selectedDate}
+            value={selectedDate}
             onChange={handleDateChange}
-            dateFormat="yyyy/MM/dd"
-            showYearDropdown
-            showMonthDropdown
-            dropdownMode="select"
+            calendar={persian}
+            locale={persian_fa}
+            format="YYYY/MM/DD"
+            calendarPosition="bottom-center"
           />
         </label>
         <br />
@@ -111,6 +111,7 @@ function SubmitUserPage() {
             </label>
           </div>
         ))}
+        <br />
         <button type="submit">Submit</button>
       </form>
     </div>
