@@ -8,11 +8,13 @@ export const formatPersianMonth = (persianDate: string | undefined): string => {
       'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
     ];
     
-    if (!year || !month || isNaN(parseInt(month)) || parseInt(month) < 1 || parseInt(month) > 12) {
+    const monthIndex = parseInt(month);
+
+    if (!year || isNaN(monthIndex) || monthIndex < 1 || monthIndex > 12) {
       return 'نامشخص';
     }
     
-    return `${persianMonths[parseInt(month) - 1]} ${year}`;
+    return `${persianMonths[monthIndex - 1]} ${year}`;
   } catch (error) {
     console.error('Error formatting Persian date:', error);
     return 'نامشخص';

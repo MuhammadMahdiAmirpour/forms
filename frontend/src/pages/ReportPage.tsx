@@ -1,75 +1,79 @@
-import React, { useEffect, useState } from "react";
-import { generateReport } from "../api"; // Use the correct function name
-import { ReportData, GenderStats } from "../types";
+import React, { useState, useEffect } from "react";
+import { getUserStats } from "../api";
+import styles from "../styles/ReportPage.module.css";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 function ReportPage() {
-  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [userStats, setUserStats] = useState<any[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await generateReport(); // Call the correct function
-        setReportData(data);
-      } catch (error) {
-        console.error("Failed to fetch report data:", error);
-      }
-    };
-    fetchData();
-  }, []);
+    if (selectedYear && selectedMonth) {
+      fetchUserStats(selectedYear, selectedMonth);
+    }
+  }, [selectedYear, selectedMonth]);
 
-  if (!reportData) {
-    return <p>Loading...</p>;
-  }
+  const fetchUserStats = async (year: string, month: string) => {
+    try {
+      const data = await getUserStats(year, month);
+      setUserStats(data);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+    }
+  };
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMonth(e.target.value);
+  };
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedYear(e.target.value);
+  };
 
   return (
-    <div>
-      <h2>Weekly Stats</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Week/Month</th>
-            <th>Male Count</th>
-            <th>Female Count</th>
-            <th>Male %</th>
-            <th>Female %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reportData.WeeklyStats.map((stat: GenderStats, index: number) => (
-            <tr key={index}>
-              <td>{stat.week_or_month}</td>
-              <td>{stat.male_count}</td>
-              <td>{stat.female_count}</td>
-              <td>{stat.male_percentage.toFixed(2)}%</td>
-              <td>{stat.female_percentage.toFixed(2)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h2>Monthly Stats</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Week/Month</th>
-            <th>Male Count</th>
-            <th>Female Count</th>
-            <th>Male %</th>
-            <th>Female %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reportData.MonthlyStats.map((stat: GenderStats, index: number) => (
-            <tr key={index}>
-              <td>{stat.week_or_month}</td>
-              <td>{stat.male_count}</td>
-              <td>{stat.female_count}</td>
-              <td>{stat.male_percentage.toFixed(2)}%</td>
-              <td>{stat.female_percentage.toFixed(2)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className={styles.container}>
+      <h2>Monthly User Statistics</h2>
+      <label className={styles.label}>
+        Year:
+        <select value={selectedYear} onChange={handleYearChange} className={styles.select}>
+          <option value="">Select Year</option>
+          <option value="1400">1400</option>
+          <option value="1401">1401</option>
+          <option value="1402">1402</option>
+        </select>
+      </label>
+      <label className={styles.label}>
+        Month:
+        <select value={selectedMonth} onChange={handleMonthChange} className={styles.select}>
+          <option value="">Select Month</option>
+          <option value="01">Farvardin</option>
+          <option value="02">Ordibehesht</option>
+          <option value="03">Khordad</option>
+          <option value="04">Tir</option>
+          <option value="05">Mordad</option>
+          <option value="06">Shahrivar</option>
+          <option value="07">Mehr</option>
+          <option value="08">Aban</option>
+          <option value="09">Azar</option>
+          <option value="10">Dey</option>
+          <option value="11">Bahman</option>
+          <option value="12">Esfand</option>
+        </select>
+      </label>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={userStats}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="persian_date" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="count" name="Number of Users" fill="#8884d8" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

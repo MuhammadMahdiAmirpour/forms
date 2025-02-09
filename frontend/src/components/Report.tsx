@@ -6,7 +6,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { generateReport } from '../api';
-import { ReportData, WeeklyStats, MonthlyStats } from '../types';
+import { ReportData } from '../types';
 
 const COLORS = ['#0088FE', '#FF8042'];
 
@@ -23,7 +23,7 @@ const Report: React.FC = () => {
 
         // Set default selected month from MonthlyStats
         if (data.MonthlyStats && data.MonthlyStats.length > 0) {
-          setSelectedMonth(data.MonthlyStats[0].persian_date);
+          setSelectedMonth(data.MonthlyStats[0].date.split('/')[1]);
         }
       } catch (error) {
         console.error('Error fetching report data:', error);
@@ -49,8 +49,8 @@ const Report: React.FC = () => {
   // Prepare weekly data - ensure we have exactly 4 weeks
   const weeklyData = Array.from({ length: 4 }, (_, i) => {
     const weekNumber = i + 1;
-    const weekStat = reportData.WeeklyStats.find(stat => stat.week === weekNumber) || {
-      week: weekNumber,
+    const weekStat = reportData.WeeklyStats.find(stat => stat.date === `Week ${weekNumber}`) || {
+      date: `Week ${weekNumber}`,
       male_count: 0,
       female_count: 0
     };
@@ -58,7 +58,7 @@ const Report: React.FC = () => {
   });
 
   // Filter monthly data based on selected month
-  const monthlyData = reportData.MonthlyStats;
+  const monthlyData = reportData.MonthlyStats.filter(stat => stat.date.split('/')[1] === selectedMonth);
 
   return (
     <div className="report-container" style={{ padding: '20px' }}>
@@ -77,8 +77,8 @@ const Report: React.FC = () => {
           }}
         >
           {reportData.MonthlyStats.map(stat => (
-            <option key={stat.persian_date} value={stat.persian_date}>
-              {stat.persian_date}
+            <option key={stat.date} value={stat.date.split('/')[1]}>
+              {stat.date.split('/')[1]}
             </option>
           ))}
         </select>
@@ -120,7 +120,7 @@ const Report: React.FC = () => {
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
-              dataKey="week" 
+              dataKey="date" 
               tickFormatter={(week) => `هفته ${week}`}
             />
             <YAxis />
@@ -138,7 +138,7 @@ const Report: React.FC = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* Monthly Users Chart */}
+      {/* Monthly Users Trend Chart */}
       <div className="chart-section">
         <h2>تعداد کاربران ماهانه</h2>
         <ResponsiveContainer width="100%" height={300}>
@@ -148,7 +148,8 @@ const Report: React.FC = () => {
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
-              dataKey="persian_date"
+              dataKey="date"
+              tickFormatter={(date) => date}
               angle={-45}
               textAnchor="end"
               height={60}

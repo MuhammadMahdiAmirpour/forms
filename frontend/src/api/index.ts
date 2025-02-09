@@ -15,10 +15,22 @@ export const submitUser = async (userData: any): Promise<any> => {
     }
 };
 
+export const getUserStats = async (year: string, month: string): Promise<any> => {
+    try {
+        const response = await axios.get(`${USER_SERVICE_URL}/api/user-stats`, {
+            params: { year, month },
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching user stats:", error);
+        throw error;
+    }
+};
+
 // API client for generating reports
 export const generateReport = async (): Promise<any> => {
     try {
-        const response = await axios.get(`${REPORT_SERVICE_URL}/api/generate-report`);
+        const response = await axios.get(`${REPORT_SERVICE_URL}/api/report`);
         return response.data;
     } catch (error) {
         console.error("Error generating report:", error);

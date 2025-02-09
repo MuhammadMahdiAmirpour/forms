@@ -2,60 +2,68 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
+	"github.com/gorilla/schema"
 	"gorm.io/gorm"
 
 	"back-forms/user-service/models"
 )
 
-// userInput represents the JSON payload from the frontend.
-type userInput struct {
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-	Gender    string `json:"gender"`
-	// Expecting persian_date as a string (for example, "1403/02/09")
-	PersianDate string `json:"persian_date"`
+type UserStatsParams struct {
+	Month string `schema:"month"`
+	Year  string `schema:"year"`
 }
 
-// SubmitUser handles the user creation request and stores the input date directly.
 func SubmitUser(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Only allow POST requests.
-		if r.Method != http.MethodPost {
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		var user models.User
+		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		var input userInput
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+		if result := db.Create(&user); result.Error != nil {
+			http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Prepare the user data by storing the Persian date as provided.
-		userData := models.User{
-			Firstname:   input.Firstname,
-			Lastname:    input.Lastname,
-			Gender:      input.Gender,
-			PersianDate: input.PersianDate,
-			CreatedAt:   time.Now(),
-		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(user)
+	}
+}
 
-		// Save the user data to the database.
-		if result := db.Create(&userData); result.Error != nil {
-			log.Printf("Failed to save user: %v", result.Error)
-			http.Error(w, "Failed to save user", http.StatusInternalServerError)
+func GetUserStats(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var params UserStatsParams
+		decoder := schema.NewDecoder()
+		if err := decoder.Decode(&params, r.URL.Query()); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// Respond with a success message and the new user ID.
+		startDate, err := time.Parse("2006-01-02", params.Year+"-"+params.Month+"-01")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		endDate := startDate.AddDate(0, 1, -1)
+
+		var stats []models.UserStats
+		query := `
+			SELECT persian_date, COUNT(*) AS count
+			FROM users
+			WHERE persian_date BETWEEN ? AND ?
+			GROUP BY persian_date
+			ORDER BY persian_date
+		`
+		if err := db.Raw(query, startDate.Format("2006-01-02"), endDate.Format("2006-01-02")).Scan(&stats).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message": "User submitted successfully",
-			"user_id": userData.ID,
-		})
+		json.NewEncoder(w).Encode(stats)
 	}
 }

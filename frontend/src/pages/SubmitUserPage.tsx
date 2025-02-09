@@ -4,6 +4,7 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import { submitUser } from "../api";
 import { User, Address } from "../types";
+import styles from "../styles/SubmitUserPage.module.css";
 
 function SubmitUserPage() {
   const [formData, setFormData] = useState<User>({
@@ -39,36 +40,51 @@ function SubmitUserPage() {
     setFormData({ ...formData, addresses: updatedAddresses });
   };
 
+  const addAddress = () => {
+    setFormData({
+      ...formData,
+      addresses: [...formData.addresses, { subject: "", details: "" }]
+    });
+  };
+
+  const removeAddress = (index: number) => {
+    const updatedAddresses = formData.addresses.filter((_, i) => i !== index);
+    setFormData({ ...formData, addresses: updatedAddresses });
+  };
+
   return (
-    <div>
+    <div className={styles.container}>
       <h2>Submit User</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <label className={styles.label}>
           First Name:
           <input
             type="text"
             value={formData.firstname}
             onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
             required
+            className={styles.input}
           />
         </label>
         <br />
-        <label>
+        <label className={styles.label}>
           Last Name:
           <input
             type="text"
             value={formData.lastname}
             onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
             required
+            className={styles.input}
           />
         </label>
         <br />
-        <label>
+        <label className={styles.label}>
           Gender:
           <select
             value={formData.gender}
             onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
             required
+            className={styles.select}
           >
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
@@ -76,7 +92,7 @@ function SubmitUserPage() {
           </select>
         </label>
         <br />
-        <label>
+        <label className={styles.label}>
           Persian Date:
           <DatePicker
             value={selectedDate}
@@ -85,34 +101,43 @@ function SubmitUserPage() {
             locale={persian_fa}
             format="YYYY/MM/DD"
             calendarPosition="bottom-center"
+            className={styles.datePicker}
           />
         </label>
         <br />
         <h3>Addresses</h3>
         {formData.addresses.map((address, index) => (
-          <div key={index}>
-            <label>
-              Subject:
-              <input
-                type="text"
-                value={address.subject}
-                onChange={(e) => handleAddressChange(index, "subject", e.target.value)}
-                required
-              />
-            </label>
-            <label>
-              Details:
-              <input
-                type="text"
-                value={address.details}
-                onChange={(e) => handleAddressChange(index, "details", e.target.value)}
-                required
-              />
-            </label>
+          <div key={index} className={styles.addressRow}>
+            <label className={styles.gridLabel}>Subject:</label>
+            <input
+              type="text"
+              value={address.subject}
+              onChange={(e) => handleAddressChange(index, "subject", e.target.value)}
+              required
+              className={styles.gridInput}
+            />
+            <label className={styles.gridLabel}>Details:</label>
+            <input
+              type="text"
+              value={address.details}
+              onChange={(e) => handleAddressChange(index, "details", e.target.value)}
+              required
+              className={styles.gridInput}
+            />
+            <button
+              type="button"
+              onClick={() => removeAddress(index)}
+              className={styles.removeButton}
+            >
+              Remove
+            </button>
           </div>
         ))}
+        <button type="button" onClick={addAddress} className={styles.addButton}>
+          Add Address
+        </button>
         <br />
-        <button type="submit">Submit</button>
+        <button type="submit" className={styles.submitButton}>Submit</button>
       </form>
     </div>
   );
