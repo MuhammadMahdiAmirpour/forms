@@ -22,8 +22,20 @@ export interface GenderStats {
   female_percent: number; // Percentage of females
 }
 
-// ReportData represents the structure of the report data returned by the API.
-export interface ReportData {
-  WeeklyStats: GenderStats[]; // Statistics grouped by week
-  MonthlyStats: GenderStats[]; // Statistics grouped by month
+export interface WeeklyGenderStats {
+  week: number;
+  male_count: number;
+  female_count: number;
 }
+
+export interface MonthlyGenderStats {
+  persian_date: string;
+  male_count: number;
+  female_count: number;
+}
+
+export interface ReportData {
+  WeeklyStats: WeeklyGenderStats[];
+  MonthlyStats: MonthlyGenderStats[];
+}
+
