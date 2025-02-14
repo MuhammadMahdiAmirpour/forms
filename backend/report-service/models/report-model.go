@@ -2,13 +2,12 @@ package models
 
 import (
 	"fmt"
-	"time"
+	"sort"
+	"strings"
 
-	"github.com/jalaali/go-jalaali"
 	"gorm.io/gorm"
 )
 
-// GenderStats holds gender-based statistics.
 type GenderStats struct {
 	Date             string  `json:"date"`
 	MaleCount        int     `json:"male_count"`
@@ -17,7 +16,6 @@ type GenderStats struct {
 	FemalePercentage float64 `json:"female_percentage"`
 }
 
-// calculatePercentage calculates the percentage value of count out of total.
 func calculatePercentage(count, total int) float64 {
 	if total == 0 {
 		return 0
@@ -25,41 +23,7 @@ func calculatePercentage(count, total int) float64 {
 	return float64(count) / float64(total) * 100
 }
 
-// getPersianWeekBoundaries computes the boundaries of the current week based on the Persian calendar.
-func getPersianWeekBoundaries() (string, string) {
-	now := time.Now()
-	offset := (int(now.Weekday()) + 1) % 7
-	startDate := now.AddDate(0, 0, -offset)
-	endDate := startDate.AddDate(0, 0, 6)
-
-	sYear, sMonth, sDay, _ := jalaali.ToJalaali(startDate.Year(), startDate.Month(), startDate.Day())
-	eYear, eMonth, eDay, _ := jalaali.ToJalaali(endDate.Year(), endDate.Month(), endDate.Day())
-	startPersian := fmt.Sprintf("%04d/%02d/%02d", sYear, sMonth, sDay)
-	endPersian := fmt.Sprintf("%04d/%02d/%02d", eYear, eMonth, eDay)
-	return startPersian, endPersian
-}
-
-// getPersianMonthBoundaries computes the boundaries of the current month based on the Persian calendar.
-func getPersianMonthBoundaries() (string, string, int) {
-	now := time.Now()
-	pYear, pMonth, _, _ := jalaali.ToJalaali(now.Year(), now.Month(), now.Day())
-	startPersian := fmt.Sprintf("%04d/%02d/%02d", pYear, pMonth, 1)
-
-	var daysInMonth int
-	if pMonth <= 6 {
-		daysInMonth = 31
-	} else if pMonth <= 11 {
-		daysInMonth = 30
-	} else {
-		daysInMonth = 29
-	}
-	endPersian := fmt.Sprintf("%04d/%02d/%02d", pYear, pMonth, daysInMonth)
-	return startPersian, endPersian, daysInMonth
-}
-
-// GetGenderStatsByWeek returns weekly gender statistics for users whose persian_date falls within the current Persian week.
-func GetGenderStatsByWeek(db *gorm.DB) ([]GenderStats, error) {
-	start, end := getPersianWeekBoundaries()
+func GetTotalGenderStats(db *gorm.DB) (GenderStats, error) {
 	var result struct {
 		MaleCount   int
 		FemaleCount int
@@ -67,61 +31,159 @@ func GetGenderStatsByWeek(db *gorm.DB) ([]GenderStats, error) {
 
 	query := `
         SELECT 
-            SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) AS male_count,
-            SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) AS female_count
+            COUNT(CASE WHEN gender = 'Male' THEN 1 END) AS male_count,
+            COUNT(CASE WHEN gender = 'Female' THEN 1 END) AS female_count
         FROM users
-        WHERE persian_date BETWEEN ? AND ?
     `
-	err := db.Raw(query, start, end).Scan(&result).Error
+	err := db.Raw(query).Scan(&result).Error
+	if err != nil {
+		return GenderStats{}, err
+	}
+
+	total := result.MaleCount + result.FemaleCount
+	return GenderStats{
+		MaleCount:        result.MaleCount,
+		FemaleCount:      result.FemaleCount,
+		MalePercentage:   calculatePercentage(result.MaleCount, total),
+		FemalePercentage: calculatePercentage(result.FemaleCount, total),
+	}, nil
+}
+
+type UserForStats struct {
+	PersianDate string
+	Gender      string
+}
+
+func GetDailyStats(db *gorm.DB) ([]GenderStats, error) {
+	var users []UserForStats
+
+	err := db.Table("users").
+		Select("persian_date, gender").
+		Find(&users).Error
 	if err != nil {
 		return nil, err
 	}
-	total := result.MaleCount + result.FemaleCount
 
-	stats := []GenderStats{
-		{
-			Date:             fmt.Sprintf("%s - %s", start, end),
-			MaleCount:        result.MaleCount,
-			FemaleCount:      result.FemaleCount,
-			MalePercentage:   calculatePercentage(result.MaleCount, total),
-			FemalePercentage: calculatePercentage(result.FemaleCount, total),
-		},
+	dailyStats := make(map[string]GenderStats)
+
+	for _, user := range users {
+		englishDate := convertPersianToEnglish(user.PersianDate)
+
+		stats := dailyStats[englishDate]
+		if user.Gender == "Male" {
+			stats.MaleCount++
+		} else {
+			stats.FemaleCount++
+		}
+		stats.Date = englishDate
+		dailyStats[englishDate] = stats
 	}
-	return stats, nil
+
+	var result []GenderStats
+	for _, stats := range dailyStats {
+		total := stats.MaleCount + stats.FemaleCount
+		stats.MalePercentage = calculatePercentage(stats.MaleCount, total)
+		stats.FemalePercentage = calculatePercentage(stats.FemaleCount, total)
+		result = append(result, stats)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Date < result[j].Date
+	})
+
+	return result, nil
 }
 
-// GetGenderStatsByMonth returns daily gender statistics for users whose persian_date falls within the current Persian month.
-func GetGenderStatsByMonth(db *gorm.DB) ([]GenderStats, error) {
-	start, _, daysInMonth := getPersianMonthBoundaries()
-	var stats []GenderStats
-
-	for day := 1; day <= daysInMonth; day++ {
-		date := fmt.Sprintf("%s/%02d", start[:8], day)
-		var result struct {
-			MaleCount   int
-			FemaleCount int
-		}
-
-		query := `
-        SELECT 
-            SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) AS male_count,
-            SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) AS female_count
-        FROM users
-        WHERE persian_date = ?
-    `
-		err := db.Raw(query, date).Scan(&result).Error
-		if err != nil {
-			return nil, err
-		}
-		total := result.MaleCount + result.FemaleCount
-
-		stats = append(stats, GenderStats{
-			Date:             date,
-			MaleCount:        result.MaleCount,
-			FemaleCount:      result.FemaleCount,
-			MalePercentage:   calculatePercentage(result.MaleCount, total),
-			FemalePercentage: calculatePercentage(result.FemaleCount, total),
-		})
+func convertPersianToEnglish(persianStr string) string {
+	persianNums := map[rune]rune{
+		'۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+		'۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
 	}
-	return stats, nil
+
+	var result strings.Builder
+	for _, r := range persianStr {
+		if en, ok := persianNums[r]; ok {
+			result.WriteRune(en)
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
+
+func GetWeeklyStats(db *gorm.DB) ([]GenderStats, error) {
+	var users []UserForStats
+
+	err := db.Table("users").
+		Select("persian_date, gender").
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	weeklyStats := make(map[string]GenderStats)
+
+	for _, user := range users {
+		englishDate := convertPersianToEnglish(user.PersianDate)
+		// Extract day from YYYYMMDD format
+		day := englishDate[6:8]
+		// Calculate week number (1-based)
+		weekNum := (atoi(day)-1)/7 + 1
+		weekKey := fmt.Sprintf("Week %d", weekNum)
+
+		stats := weeklyStats[weekKey]
+		stats.Date = weekKey
+		if user.Gender == "Male" {
+			stats.MaleCount++
+		} else {
+			stats.FemaleCount++
+		}
+		weeklyStats[weekKey] = stats
+	}
+
+	var result []GenderStats
+	for _, stats := range weeklyStats {
+		total := stats.MaleCount + stats.FemaleCount
+		stats.MalePercentage = calculatePercentage(stats.MaleCount, total)
+		stats.FemalePercentage = calculatePercentage(stats.FemaleCount, total)
+		result = append(result, stats)
+	}
+
+	// Sort by week number
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Date < result[j].Date
+	})
+
+	return result, nil
+}
+
+func atoi(s string) int {
+	n := 0
+	for _, c := range s {
+		n = n*10 + int(c-'0')
+	}
+	return n
+}
+
+func GetAllStats(db *gorm.DB) (map[string]interface{}, error) {
+	totalStats, err := GetTotalGenderStats(db)
+	if err != nil {
+		return nil, err
+	}
+
+	dailyStats, err := GetDailyStats(db)
+	if err != nil {
+		return nil, err
+	}
+
+	weeklyStats, err := GetWeeklyStats(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"total":  totalStats,
+		"daily":  dailyStats,
+		"weekly": weeklyStats,
+	}, nil
 }

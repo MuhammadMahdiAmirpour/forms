@@ -6,204 +6,117 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { generateReport } from '../api';
-import { ReportData } from '../types';
+import styles from '../styles/Report.module.css';
 
 const COLORS = ['#0088FE', '#FF8042'];
 
 const Report: React.FC = () => {
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchReportData = async () => {
-      try {
-        const data = await generateReport();
-        console.log('Raw API Response:', data);
-        setReportData(data);
-
-        // Set default selected month from MonthlyStats
-        if (data.MonthlyStats && data.MonthlyStats.length > 0) {
-          setSelectedMonth(data.MonthlyStats[0].date.split('/')[1]);
-        }
-      } catch (error) {
-        console.error('Error fetching report data:', error);
-      }
-    };
-
-    fetchReportData();
+    generateReport().then(response => {
+      console.log('API Response:', response);
+      setData(response);
+    });
   }, []);
 
-  if (!reportData) {
-    return <div>در حال بارگذاری...</div>;
-  }
+  if (!data) return <div>Loading...</div>;
 
-  // Calculate totals from WeeklyStats
-  const totalMale = reportData.WeeklyStats.reduce((sum, stat) => sum + (stat.male_count || 0), 0);
-  const totalFemale = reportData.WeeklyStats.reduce((sum, stat) => sum + (stat.female_count || 0), 0);
-
-  const genderPieData = [
-    { name: 'مرد', value: totalMale },
-    { name: 'زن', value: totalFemale }
+  const pieData = [
+    { name: 'مرد', value: data.total.male_count || 0},
+    { name: 'زن', value: data.total.female_count || 0}
   ];
 
-  // Prepare weekly data - ensure we have exactly 4 weeks
-  const weeklyData = Array.from({ length: 4 }, (_, i) => {
-    const weekNumber = i + 1;
-    const weekStat = reportData.WeeklyStats.find(stat => stat.date === `Week ${weekNumber}`) || {
-      date: `Week ${weekNumber}`,
-      male_count: 0,
-      female_count: 0
-    };
-    return weekStat;
+  const barData = Array.from({ length: 4 }, (_, weekIndex) => {
+      const weekStart = weekIndex * 7;
+      const weekDays = data.daily.slice(weekStart, weekStart + 7);
+      
+      return {
+          name: `هفته ${weekIndex + 1}`,
+          male: weekDays.reduce((sum, day) => sum + day.male_count, 0),
+          female: weekDays.reduce((sum, day) => sum + day.female_count, 0)
+      };
   });
 
-  // Filter monthly data based on selected month
-  const monthlyData = reportData.MonthlyStats.filter(stat => stat.date.split('/')[1] === selectedMonth);
+  const trendData = data.daily
+    .filter(day => day.date) // Remove empty date entries
+    .map(day => ({
+        name: day.date.substring(6, 8), // Get just the day part
+        male: day.male_count,
+        female: day.female_count
+    }));
 
   return (
-    <div className="report-container" style={{ padding: '20px' }}>
-      <h1>گزارش آماری کاربران</h1>
+    <div className={styles.container}>
+      <h2 className={styles.title}>گزارش آماری کاربران</h2>
 
-      {/* Month Selection */}
-      <div className="month-selector" style={{ marginBottom: '20px' }}>
-        <label style={{ marginLeft: '10px' }}>انتخاب ماه: </label>
-        <select 
-          value={selectedMonth} 
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          style={{ 
-            padding: '5px 10px',
-            fontSize: '16px',
-            direction: 'rtl'
-          }}
-        >
-          {reportData.MonthlyStats.map(stat => (
-            <option key={stat.date} value={stat.date.split('/')[1]}>
-              {stat.date.split('/')[1]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Gender Distribution Pie Chart */}
-      <div className="chart-section">
-        <h2>توزیع جنسیتی کل کاربران</h2>
+      <div className={styles.chartSection}>
+        <h3>توزیع جنسیتی کل کاربران</h3>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
-              data={genderPieData}
-              dataKey="value"
-              nameKey="name"
+              data={pieData}
               cx="50%"
               cy="50%"
-              outerRadius={100}
-              label={({name, value, percent}) => 
-                `${name}: ${(percent * 100).toFixed(0)}% (${value} نفر)`
-              }
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+              label={({name, value}) => `${name}: ${value}`}
             >
-              {genderPieData.map((entry, index) => (
+              {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value) => `${value} نفر`} />
+            <Tooltip />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Weekly Gender Distribution Chart */}
-      <div className="chart-section">
-        <h2>توزیع جنسیتی هفتگی</h2>
+      <div className={styles.chartSection}>
+        <h3>توزیع جنسیتی هفتگی</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={weeklyData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
+          <BarChart data={barData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="date" 
-              tickFormatter={(week) => `هفته ${week}`}
-            />
+            <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip 
-              formatter={(value, name) => {
-                if (name === 'male_count') return [`${value} نفر`, 'مرد'];
-                if (name === 'female_count') return [`${value} نفر`, 'زن'];
-                return [value, name];
-              }}
-            />
+            <Tooltip />
             <Legend />
-            <Bar dataKey="male_count" name="مرد" fill={COLORS[0]} />
-            <Bar dataKey="female_count" name="زن" fill={COLORS[1]} />
+            <Bar dataKey="male" fill={COLORS[0]} name="مرد" />
+            <Bar dataKey="female" fill={COLORS[1]} name="زن" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Monthly Users Trend Chart */}
-      <div className="chart-section">
-        <h2>تعداد کاربران ماهانه</h2>
+      <div className={styles.chartSection}>
+        <h3>روند ثبت نام روزانه</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart
-            data={monthlyData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
+          <LineChart data={trendData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
-              dataKey="date"
-              tickFormatter={(date) => date}
-              angle={-45}
-              textAnchor="end"
-              height={60}
+              dataKey="name" 
+              label={{ value: 'روز', position: 'bottom' }}
             />
-            <YAxis />
-            <Tooltip 
-              formatter={(value, name) => {
-                if (name === 'male_count') return [`${value} نفر`, 'مرد'];
-                if (name === 'female_count') return [`${value} نفر`, 'زن'];
-                return [value, name];
-              }}
+            <YAxis 
+              label={{ value: 'تعداد کاربران', angle: -90, position: 'insideLeft' }}
             />
+            <Tooltip />
             <Legend />
-            <Line
-              type="monotone"
-              dataKey="male_count"
-              name="مرد"
-              stroke={COLORS[0]}
-              strokeWidth={2}
-            />
-            <Line
-              type="monotone"
-              dataKey="female_count"
-              name="زن"
-              stroke={COLORS[1]}
-              strokeWidth={2}
-            />
+            <Line type="monotone" dataKey="male" stroke={COLORS[0]} name="مرد" />
+            <Line type="monotone" dataKey="female" stroke={COLORS[1]} name="زن" />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Total Numbers Display */}
-      <div className="totals-section" style={{
-        marginTop: '20px',
-        padding: '20px',
-        backgroundColor: '#f5f5f5',
-        borderRadius: '8px',
-        textAlign: 'center'
-      }}>
-        <h2>آمار کلی</h2>
-        <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '10px' }}>
-          <div>
-            <strong>تعداد کل مردان:</strong> {totalMale} نفر
-          </div>
-          <div>
-            <strong>تعداد کل زنان:</strong> {totalFemale} نفر
-          </div>
-          <div>
-            <strong>مجموع کل:</strong> {totalMale + totalFemale} نفر
-          </div>
-        </div>
+      <div className={styles.statsCard}>
+        <h3>آمار کلی</h3>
+        <p>مردان: {data.total.male_count}</p>
+        <p>زنان: {data.total.female_count}</p>
+        <p>مجموع: {data.total.male_count + data.total.female_count}</p>
       </div>
     </div>
   );
 };
 
 export default Report;
+

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 
 	"gorm.io/gorm"
@@ -12,33 +12,27 @@ import (
 
 func GenerateReport(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-			return
-		}
+		fmt.Println("Generating report...")
 
-		// Fetch gender stats by week
-		weeklyStats, err := models.GetGenderStatsByWeek(db)
+		stats, err := models.GetAllStats(db)
+		fmt.Printf("Generated stats: %+v\n", stats)
+
 		if err != nil {
-			http.Error(w, "Failed to fetch weekly stats", http.StatusInternalServerError)
+			fmt.Printf("Error generating stats: %v\n", err)
+			http.Error(w, "Failed to fetch statistics", http.StatusInternalServerError)
 			return
 		}
 
-		// Fetch gender stats by month
-		monthlyStats, err := models.GetGenderStatsByMonth(db)
-		if err != nil {
-			http.Error(w, "Failed to fetch monthly stats", http.StatusInternalServerError)
-			return
-		}
-
-		// Return JSON response
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(map[string]interface{}{
-			"WeeklyStats":  weeklyStats,
-			"MonthlyStats": monthlyStats,
-		})
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		err = json.NewEncoder(w).Encode(stats)
 		if err != nil {
-			log.Fatalf("failed to return JSON response: %v", err)
+			fmt.Printf("Error encoding response: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
 		}
+
+		fmt.Println("Report generated successfully")
 	}
 }

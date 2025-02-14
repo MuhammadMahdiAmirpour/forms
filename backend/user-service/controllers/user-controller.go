@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/schema"
 	"gorm.io/gorm"
@@ -43,27 +43,15 @@ func GetUserStats(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		startDate, err := time.Parse("2006-01-02", params.Year+"-"+params.Month+"-01")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		endDate := startDate.AddDate(0, 1, -1)
+		datePattern := fmt.Sprintf("%%%s%s%%", params.Year, params.Month)
 
-		var stats []models.UserStats
-		query := `
-			SELECT persian_date, COUNT(*) AS count
-			FROM users
-			WHERE persian_date BETWEEN ? AND ?
-			GROUP BY persian_date
-			ORDER BY persian_date
-		`
-		if err := db.Raw(query, startDate.Format("2006-01-02"), endDate.Format("2006-01-02")).Scan(&stats).Error; err != nil {
+		var users []models.User
+		if err := db.Where("persian_date LIKE ?", datePattern).Find(&users).Error; err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(stats)
+		json.NewEncoder(w).Encode(users)
 	}
 }

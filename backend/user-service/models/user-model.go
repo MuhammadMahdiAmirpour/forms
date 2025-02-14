@@ -29,5 +29,6 @@ type Address struct {
 // UserStats represents the aggregated user statistics.
 type UserStats struct {
 	PersianDate string `json:"persian_date"`
-	Count       int    `json:"count"`
+	MaleCount   int    `json:"male_count"`
+	FemaleCount int    `json:"female_count"`
 }
