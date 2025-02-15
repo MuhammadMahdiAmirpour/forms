@@ -27,16 +27,20 @@ const Report: React.FC = () => {
     { name: 'زن', value: data.total.female_count || 0}
   ];
 
-  const barData = Array.from({ length: 4 }, (_, weekIndex) => {
-      const weekStart = weekIndex * 7;
-      const weekDays = data.daily.slice(weekStart, weekStart + 7);
-      
-      return {
-          name: `هفته ${weekIndex + 1}`,
-          male: weekDays.reduce((sum, day) => sum + day.male_count, 0),
-          female: weekDays.reduce((sum, day) => sum + day.female_count, 0)
-      };
-  });
+  const allWeeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map(weekName => ({
+    name: weekName,
+    male: 0,
+    female: 0
+  }))
+
+  const barData = allWeeks.map(week => {
+    const weekData = (data.weekly || []).find((w: any) => w.date === week.name);
+    return {
+      name: week.name,
+      male: weekData ? weekData.male_count : 0,
+      female: weekData ? weekData.female_count: 0
+    }
+  })
 
   const trendData = data.daily
     .filter(day => day.date) // Remove empty date entries
