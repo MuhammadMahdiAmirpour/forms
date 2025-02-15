@@ -1,21 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap');
+
+:root {
+  --primary-color: #2196F3;
+  --background-color: #ffffff;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .container {
   max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--background-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  font-family: 'Vazirmatn', 'Poppins', sans-serif;
 }
 
 .label {
-  margin-bottom: 10px;
-  font-weight: bold;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  display: block;
 }
 
 .select {
-  margin-right: 10px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0.75rem;
+  margin-right: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  background-color: white;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  min-width: 150px;
 }
+
+.select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  outline: none;
+}
+
+/* RTL Support */
+[dir="rtl"] .container {
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+[dir="ltr"] .container {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .select {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+}
+

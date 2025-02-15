@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  PieChart, Pie, Cell, 
+import {
+  PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line,
-  ResponsiveContainer 
+  ResponsiveContainer
 } from 'recharts';
 import { generateReport } from '../api';
 import styles from '../styles/Report.module.css';
@@ -23,8 +23,8 @@ const Report: React.FC = () => {
   if (!data) return <div>Loading...</div>;
 
   const pieData = [
-    { name: 'مرد', value: data.total.male_count || 0},
-    { name: 'زن', value: data.total.female_count || 0}
+    { name: 'مرد', value: data.total.male_count || 0 },
+    { name: 'زن', value: data.total.female_count || 0 }
   ];
 
   const allWeeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map(weekName => ({
@@ -38,17 +38,29 @@ const Report: React.FC = () => {
     return {
       name: week.name,
       male: weekData ? weekData.male_count : 0,
-      female: weekData ? weekData.female_count: 0
+      female: weekData ? weekData.female_count : 0
     }
   })
 
-  const trendData = data.daily
-    .filter(day => day.date) // Remove empty date entries
-    .map(day => ({
-        name: day.date.substring(6, 8), // Get just the day part
-        male: day.male_count,
-        female: day.female_count
-    }));
+  const allDays = Array.from({ length: 31 }, (_, index) => {
+    const day = (index + 1).toString().padStart(2, '0');
+    return {
+      name: day,
+      male: 0,
+      female: 0
+    }
+  });
+
+  const trendData = allDays.map(day => {
+    const dayData = (data.daily || []).find((d: any) =>
+      d.date.substring(6, 8) === day.name
+    );
+    return {
+      name: day.name,
+      male: dayData ? dayData.male_count : 0,
+      female: dayData ? dayData.female_count : 0
+    }
+  });
 
   return (
     <div className={styles.container}>
@@ -65,7 +77,11 @@ const Report: React.FC = () => {
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
-              label={({name, value}) => `${name}: ${value}`}
+              label={({ name, value }) => {
+                const total = pieData.reduce((sum, entry) => sum + entry.value, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${name}: ${value} (${percentage}%)`;
+              }}
             >
               {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -95,17 +111,24 @@ const Report: React.FC = () => {
       <div className={styles.chartSection}>
         <h3>روند ثبت نام روزانه</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={trendData}>
+          <LineChart
+            data={trendData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 40 }} // Add margin
+          >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              label={{ value: 'روز', position: 'bottom' }}
+            <XAxis
+              dataKey="name"
+              label={{ value: 'روز', position: 'insideBottom', offset: -10 }}
+              height={60} // Increase height for label space
             />
-            <YAxis 
+            <YAxis
               label={{ value: 'تعداد کاربران', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip />
-            <Legend />
+            <Legend
+              verticalAlign="top"
+              height={36}
+            />
             <Line type="monotone" dataKey="male" stroke={COLORS[0]} name="مرد" />
             <Line type="monotone" dataKey="female" stroke={COLORS[1]} name="زن" />
           </LineChart>

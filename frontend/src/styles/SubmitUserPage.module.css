@@ -1,78 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap');
+
+:root {
+  --primary-color: #2196F3;
+  --success-color: #4CAF50;
+  --danger-color: #F44336;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  font-family: 'Vazirmatn', 'Poppins', sans-serif;
 }
 
 .form {
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
 }
 
 .label {
-  margin-bottom: 10px;
-  font-weight: bold;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
 }
 
 .input,
 .select,
 .datePicker {
   width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  font-size: 1rem;
+}
+
+.input:focus,
+.select:focus,
+.datePicker:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  outline: none;
 }
 
 .addressRow {
   display: grid;
   grid-template-columns: 1fr 3fr;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 1rem;
   align-items: center;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: var(--border-radius);
 }
 
 .gridLabel {
-  grid-column: span 1;
-  font-weight: bold;
+  font-weight: 500;
+  color: #333;
 }
 
 .gridInput {
-  grid-column: span 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
 }
 
-.addButton,
-.removeButton,
-.submitButton {
-  padding: 10px 15px;
-  margin-top: 10px;
+.button {
+  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   cursor: pointer;
+  font-weight: 500;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .addButton {
-  background-color: #4caf50;
+  composes: button;
+  background-color: var(--success-color);
   color: white;
 }
 
 .removeButton {
-  background-color: #f44336;
+  composes: button;
+  background-color: var(--danger-color);
   color: white;
-  margin-top: 0;
 }
 
 .submitButton {
-  background-color: #008cba;
+  composes: button;
+  background-color: var(--primary-color);
   color: white;
-  align-self: center;
+  width: 200px;
+  margin: 2rem auto 0;
 }
+
+/* RTL Support */
+[dir="rtl"] .container {
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+[dir="ltr"] .container {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  
+  .addressRow {
+    grid-template-columns: 1fr;
+  }
+}
+
