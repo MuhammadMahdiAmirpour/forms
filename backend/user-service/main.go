@@ -4,11 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"back-forms/user-service/controllers"
 	"back-forms/user-service/models"
