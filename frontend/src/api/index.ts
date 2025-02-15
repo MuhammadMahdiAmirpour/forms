@@ -3,14 +3,19 @@ import axios from "axios";
 const USER_SERVICE_URL = "http://localhost:8081";
 const REPORT_SERVICE_URL = "http://localhost:8082";
 
-export const submitUser = async (userData: any): Promise<any> => {
-    try {
-        const response = await axios.post(`${USER_SERVICE_URL}/api/submit-user`, userData);
-        return response.data;
-    } catch (error) {
-        console.error("Error submitting user:", error);
-        throw error;
-    }
+// First, ensure your API function returns the complete response:
+export const submitUser = async (userData: User) => {
+    const response = await fetch(`${USER_SERVICE_URL}/api/submit-user`, {  // Update port to match your backend
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(userData)
+    });
+    
+    const data = await response.json();
+    return data;
 };
 
 export const getUserStats = async (year: string, month: string): Promise<any> => {

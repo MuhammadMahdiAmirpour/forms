@@ -18,13 +18,23 @@ function SubmitUserPage() {
   const [selectedDate, setSelectedDate] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      const response = await submitUser(formData);
-      alert(`User submitted successfully! User ID: ${response.user_id}`);
-    } catch (error) {
-      alert("Failed to submit user. Please check the console for errors.");
-    }
+      e.preventDefault();
+      try {
+          const response = await submitUser(formData);
+          alert(`User submitted successfully! User ID: ${response.id}`);
+          // Clear form after successful submission
+          setFormData({
+              firstname: "",
+              lastname: "",
+              gender: "",
+              persian_date: "",
+              addresses: [{ subject: "", details: "" }],
+          });
+          setSelectedDate(null);
+      } catch (error) {
+          console.error('Submission error: ', error)
+          alert("Failed to submit user. Please check the console for errors.");
+      }
   };
 
   const handleDateChange = (date: any) => {
