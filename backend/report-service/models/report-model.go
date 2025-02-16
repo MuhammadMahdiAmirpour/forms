@@ -157,6 +157,105 @@ func GetWeeklyStats(db *gorm.DB) ([]GenderStats, error) {
 	return result, nil
 }
 
+// Add this function to your report-model.go
+func persianStringToInt(s string) (int, error) {
+	n := 0
+	for _, ch := range s {
+		n = n*10 + int(ch-'0')
+	}
+	return n, nil
+}
+
+func GetMonthlyStats(db *gorm.DB) ([]GenderStats, error) {
+	// First, get the current Persian year
+	var currentYear string
+	yearQuery := `
+        SELECT DISTINCT SUBSTRING(persian_date, 1, 4) as year 
+        FROM users 
+        ORDER BY year DESC 
+        LIMIT 1
+    `
+	err := db.Raw(yearQuery).Scan(&currentYear).Error
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Current Persian Year: %s\n", currentYear)
+
+	// Modified query to handle Persian numbers
+	var monthlyResults []struct {
+		Month       string
+		MaleCount   int
+		FemaleCount int
+	}
+
+	statsQuery := `
+        SELECT 
+            SUBSTRING(persian_date, 5, 2) as month,
+            COUNT(CASE WHEN gender = 'Male' THEN 1 END) as male_count,
+            COUNT(CASE WHEN gender = 'Female' THEN 1 END) as female_count
+        FROM users
+        WHERE persian_date LIKE ?
+        GROUP BY SUBSTRING(persian_date, 5, 2)
+        ORDER BY month
+    `
+
+	// Use LIKE with wildcard to match the year
+	err = db.Raw(statsQuery, currentYear+"%").Scan(&monthlyResults).Error
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Monthly Results: %+v\n", monthlyResults)
+
+	// Create a map for quick lookup of results
+	monthStats := make(map[string]struct {
+		Male   int
+		Female int
+	})
+
+	for _, result := range monthlyResults {
+		// Convert Persian month numbers to English if needed
+		month := convertPersianToEnglish(result.Month)
+		monthStats[month] = struct {
+			Male   int
+			Female int
+		}{
+			Male:   result.MaleCount,
+			Female: result.FemaleCount,
+		}
+	}
+
+	// Create the final result with all months
+	var result []GenderStats
+	for i := 1; i <= 12; i++ {
+		monthStr := fmt.Sprintf("%02d", i)
+		stats, exists := monthStats[monthStr]
+
+		if !exists {
+			stats = struct {
+				Male   int
+				Female int
+			}{0, 0}
+		}
+
+		total := stats.Male + stats.Female
+		genderStats := GenderStats{
+			Date:             monthStr,
+			MaleCount:        stats.Male,
+			FemaleCount:      stats.Female,
+			MalePercentage:   calculatePercentage(stats.Male, total),
+			FemalePercentage: calculatePercentage(stats.Female, total),
+		}
+
+		result = append(result, genderStats)
+		fmt.Printf("Month %s stats: Male=%d, Female=%d\n",
+			monthStr, stats.Male, stats.Female)
+	}
+
+	return result, nil
+}
+
 func atoi(s string) int {
 	n := 0
 	for _, c := range s {
@@ -181,9 +280,15 @@ func GetAllStats(db *gorm.DB) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	monthlyStats, err := GetMonthlyStats(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return map[string]interface{}{
-		"total":  totalStats,
-		"daily":  dailyStats,
-		"weekly": weeklyStats,
+		"total":   totalStats,
+		"daily":   dailyStats,
+		"weekly":  weeklyStats,
+		"monthly": monthlyStats,
 	}, nil
 }

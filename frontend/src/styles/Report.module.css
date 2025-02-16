@@ -2,6 +2,7 @@
 
 :root {
   --primary-color: #0088FE;
+  --secondary-color: #FF8042;
   --background-color: #ffffff;
   --secondary-bg: #f8f9fa;
   --text-primary: #333;
@@ -22,53 +23,41 @@
   font-family: 'Vazirmatn', 'Poppins', sans-serif;
 }
 
+.title {
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.chartsRow {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chartHalf {
+  flex: 1;
+  min-width: 0;
+}
+
+.chartFull {
+  width: 100%;
+}
+
 .chartSection {
-  margin: 2rem 0;
-  padding: 1.5rem;
   background-color: var(--secondary-bg);
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow-sm);
+  padding: 1.5rem;
 }
 
-.controlsSection {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.select {
-  padding: 0.75rem 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: var(--border-radius);
-  background-color: white;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.select:hover {
-  border-color: var(--primary-color);
-}
-
-.select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 136, 254, 0.1);
-}
-
-.trendChart {
-  height: 400px;
-  margin-top: 1.5rem;
+.chartSection h3 {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 500;
 }
 
 .statsCard {
@@ -79,18 +68,17 @@
   margin-top: 1.5rem;
 }
 
-.title {
+.statsCard h3 {
   color: var(--text-primary);
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.subtitle {
-  color: var(--text-secondary);
   margin-bottom: 1rem;
   font-size: 1.125rem;
   font-weight: 500;
+}
+
+.statsCard p {
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+  font-size: 1rem;
 }
 
 /* RTL Support */
@@ -103,19 +91,33 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 968px) {
   .container {
     margin: 1rem;
     padding: 1.5rem;
   }
-  
-  .controlsSection {
+
+  .chartsRow {
     flex-direction: column;
-    align-items: stretch;
+    gap: 1.5rem;
   }
-  
-  .select {
+
+  .chartHalf {
     width: 100%;
   }
 }
 
+@media (max-width: 576px) {
+  .container {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+
+  .chartSection {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+}

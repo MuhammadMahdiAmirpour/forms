@@ -15,13 +15,13 @@ type User struct {
 	PersianDate string         `json:"persian_date" gorm:"not null"`
 	CreatedAt   time.Time      `json:"created_at"`
 	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-	Addresses   []Address      `json:"addresses" gorm:"foreignKey:UserID"`
+	Addresses   []Address      `json:"addresses" gorm:"foreignKey:UserID;references:ID"`
 }
 
 // Address represents the structure of an address associated with a user.
 type Address struct {
 	ID      uint   `json:"id" gorm:"primaryKey"`
-	UserID  uint   `json:"user_id"`
+	UserID  uint   `json:"user_id" gorm:"not null"`
 	Subject string `json:"subject" gorm:"not null"`
 	Details string `json:"details" gorm:"not null"`
 }
