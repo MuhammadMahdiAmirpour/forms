@@ -16,24 +16,20 @@ import (
 )
 
 func debugDatabase(db *gorm.DB) {
-	// Check users table
 	var userCount int64
 	db.Model(&models.User{}).Count(&userCount)
 	log.Printf("Total users: %d", userCount)
 
-	// Check addresses table
 	var addressCount int64
 	db.Model(&models.Address{}).Count(&addressCount)
 	log.Printf("Total addresses: %d", addressCount)
 
-	// Check addresses with their user IDs
 	var addresses []models.Address
 	db.Find(&addresses)
 	for _, addr := range addresses {
 		log.Printf("Address ID: %d, User ID: %d, Subject: %s", addr.ID, addr.UserID, addr.Subject)
 	}
 
-	// Verify foreign key constraint
 	var result map[string]interface{}
 	db.Raw(`
         SELECT 
@@ -54,10 +50,8 @@ func debugDatabase(db *gorm.DB) {
 }
 
 func initDB() (*gorm.DB, error) {
-	// Database configuration
 	dsn := "user=myuser password=mypassword dbname=formsdb port=5432 sslmode=disable TimeZone=Asia/Tehran"
 
-	// Custom GORM logger configuration
 	newLogger := logger.New(
 		log.New(log.Writer(), "\r\n", log.LstdFlags),
 		logger.Config{
@@ -68,7 +62,6 @@ func initDB() (*gorm.DB, error) {
 		},
 	)
 
-	// Open database connection with custom configuration
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: newLogger,
 	})
@@ -76,7 +69,6 @@ func initDB() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// Set connection pool settings
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err
@@ -86,7 +78,6 @@ func initDB() (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// Auto migrate the schemas
 	log.Println("Running database migrations...")
 	err = db.AutoMigrate(&models.User{}, &models.Address{})
 	if err != nil {
@@ -102,35 +93,37 @@ func setupCORS() *cors.Cors {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
-		// Debug mode for development
-		Debug: true,
+		Debug:            true,
 	})
 }
 
 func setupRoutes(router *mux.Router, db *gorm.DB) {
-	// API routes
 	api := router.PathPrefix("/api").Subrouter()
 
-	// Users endpoints
+	// User routes
 	api.HandleFunc("/users", controllers.GetUsers(db)).Methods("GET")
+	api.HandleFunc("/users", controllers.SubmitUser(db)).Methods("POST")
 	api.HandleFunc("/users/{id}", controllers.GetUserById(db)).Methods("GET")
-	api.HandleFunc("/submit-user", controllers.SubmitUser(db)).Methods("POST")
+	api.HandleFunc("/users/{id}", controllers.EditUser(db)).Methods("PUT")
 
-	// Addresses endpoints
+	// Address routes
 	api.HandleFunc("/users/{id}/addresses", controllers.GetUserAddresses(db)).Methods("GET")
 	api.HandleFunc("/users/{id}/addresses", controllers.AddUserAddress(db)).Methods("POST")
+	api.HandleFunc("/users/{userId}/addresses/{addressId}", controllers.EditAddress(db)).Methods("PUT")
+	api.HandleFunc("/users/{userId}/addresses/{addressId}", controllers.DeleteAddress(db)).Methods("DELETE")
 
-	// Stats endpoint
+	// Stats route
 	api.HandleFunc("/user-stats", controllers.GetUserStats(db)).Methods("GET")
 
-	// Add OPTIONS method to handle preflight requests
-	api.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Global OPTIONS handler
+	router.PathPrefix("/").Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.WriteHeader(http.StatusOK)
 	})
 }
 
 func main() {
-	// Initialize database
 	log.Println("Initializing database connection...")
 	db, err := initDB()
 	if err != nil {
@@ -139,16 +132,10 @@ func main() {
 
 	debugDatabase(db)
 
-	// Create and configure router
 	router := mux.NewRouter()
-
-	// Setup routes
 	setupRoutes(router, db)
-
-	// Setup CORS
 	corsHandler := setupCORS().Handler(router)
 
-	// Create server
 	server := &http.Server{
 		Addr:         ":8081",
 		Handler:      corsHandler,
@@ -157,7 +144,6 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server
 	log.Printf("User Service starting on http://localhost%s", server.Addr)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)

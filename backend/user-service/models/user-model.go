@@ -11,6 +11,7 @@ type User struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
 	Firstname   string         `json:"firstname" gorm:"not null"`
 	Lastname    string         `json:"lastname" gorm:"not null"`
+	PhoneNumber string         `json:"phone_number" gorm:"not null"`
 	Gender      string         `json:"gender" gorm:"not null"`
 	PersianDate string         `json:"persian_date" gorm:"not null"`
 	CreatedAt   time.Time      `json:"created_at"`

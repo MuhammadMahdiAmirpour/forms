@@ -27,15 +27,74 @@ export const getUserById = async (id: number) => {
     }
 };
 
-// Submit new user
-export const submitUser = async (userData: Omit<User, 'id' | 'created_at' | 'deleted_at'>) => {
+// Submit or edit user
+export const submitUser = async (userData: User) => {
     try {
-        const response = await axios.post(`${USER_SERVICE_URL}/api/submit-user`, userData);
-        return response.data;
+        if (userData.id) {
+            // Edit existing user
+            const response = await axios.put(
+                `${USER_SERVICE_URL}/api/users/${userData.id}`,
+                {
+                    user: userData,
+                    addresses: userData.addresses
+                }
+            );
+            return response.data;
+        } else {
+            // Create new user
+            const response = await axios.post(
+                `${USER_SERVICE_URL}/api/users`,
+                userData
+            );
+            return response.data;
+        }
     } catch (error) {
-        console.error("Error submitting user:", error);
+        console.error("Error submitting/editing user:", error);
         throw error;
     }
+};
+
+// Edit address
+export const editAddress = async (userId: number, addressId: number, address: Address) => {
+  try {
+    const response = await fetch(`/api/users/${userId}/addresses/${addressId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(address),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update address: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Edit address error:', error);
+    throw error;
+  }
+};
+
+// Delete address
+export const deleteAddress = async (userId: number, addressId: number) => {
+  try {
+    const response = await fetch(`/api/users/${userId}/addresses/${addressId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete address: ${response.statusText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Delete address error:', error);
+    throw error;
+  }
 };
 
 // Get user addresses

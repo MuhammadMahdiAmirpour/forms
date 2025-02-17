@@ -1,5 +1,6 @@
 // types.ts
 export interface Address {
+    id?: number;
     subject: string;
     details: string;
 }
@@ -8,11 +9,12 @@ export interface User {
     id: number;
     firstname: string;
     lastname: string;
+    phone_number: string;
     gender: string;
     persian_date: string;
     created_at: string;
     deleted_at: string | null;
-    addresses?: Address[]; // Make addresses optional since they might be loaded separately
+    addresses?: Address[];
 }
 
 export interface WeeklyGenderStats {
@@ -32,11 +34,14 @@ export interface ReportData {
     MonthlyStats: MonthlyGenderStats[];
 }
 
-// New interfaces for API responses
 export interface ApiResponse<T> {
     success: boolean;
     data: T;
     message?: string;
+}
+
+export interface EditedAddresses {
+  [key: number]: Address;
 }
 
 export interface UserResponse extends ApiResponse<User> {}
